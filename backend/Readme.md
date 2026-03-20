@@ -63,6 +63,44 @@ backend/
 - `src/middleware`: Express middleware such as auth checks, validation, logging, and error handling.
 - `src/controllers`: actually logics for routes
 
+## API Endpoints
+
+Base URL: `http://localhost:<PORT>/api/v1`
+
+### Health
+
+- Method: `GET`
+- Path: `/health/`
+- Description: Health check endpoint.
+- Success Response: `200 { "message": "OK" }`
+
+### Timetable
+
+#### Get Batch Schedule
+
+- Method: `GET`
+- Path: `/timetable/schedule/:batch`
+- Path Param: `batch` (example: `CSE-A`)
+- Description: Returns timetable for a specific batch.
+- Success Response: `200 { "status": "success", "data": { ... } }`
+- Error Response: `404 { "status": "error", "message": "Batch not found" }`
+
+#### Get Free Slots Across Batches
+
+- Method: `GET`
+- Path: `/timetable/freeslots`
+- Body: `{ "batches": ["CSE-A", "CSE-B"] }`
+- Description: Computes common free slots by removing occupied class times for the provided batches.
+- Success Response: `200 { "status": "success", "data": { ... } }`
+- Error Response: `400` when `batches` is missing, not an array, or outside the allowed range (2 to 9).
+
+#### Get Available Batches
+
+- Method: `GET`
+- Path: `/timetable/batches`
+- Description: Returns all available batch names.
+- Success Response: `200 { "status": "success", "data": ["..."] }`
+
 ## Contribution Notes
 
 - Keep database-specific code in `src/db`.
