@@ -18,7 +18,7 @@ router.get("/schedule/:batch", async (req, res) => {
 });
 
 /* Get free slots for a list of batches */
-router.get("/freeslots", async (req, res) => {
+router.post("/freeslots", async (req, res) => {
     const batches = req.body?.batches;
     if (!batches || !Array.isArray(batches)) {
         return res.status(400).json({ status: "error", message: "Batches must be provided as an array in the request body" });

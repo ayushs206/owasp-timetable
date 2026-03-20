@@ -1,10 +1,12 @@
 import { Routes, Route } from "react-router-dom"
-import { Home } from "@/pages/Home"
+import { HomeSite } from "@/pages/Home"
+import ResultViewer from "@/pages/ResultViewer"
 
 export default function AppRouter() {
     return (
         <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<HomeSite />} />
+            <Route path="/result" element={<ResultViewer />} />
         </Routes>
     )
 }
