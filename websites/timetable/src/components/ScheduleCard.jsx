@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, ChevronDown, Check, Loader2 } from "lucide-react";
 
@@ -8,7 +8,8 @@ export default function ScheduleCard() {
   const [selectedBatch, setSelectedBatch] = useState("");
   const [search, setSearch] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState("All");
+  const dropdownRef = useRef(null);
+  const [selectedType] = useState("All");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,6 +32,16 @@ export default function ScheduleCard() {
     fetchBatches();
   }, []);
 
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const types = useMemo(() => {
     if (!Array.isArray(batches)) return ["All"];
     const extractedTypes = batches.map(b => typeof b === 'string' ? b.replace(/[0-9]/g, '') : null).filter(Boolean);
@@ -51,8 +62,8 @@ export default function ScheduleCard() {
   };
 
   return (
-    <div className="glass-card rounded-2xl p-6 md:p-8 flex flex-col relative overflow-hidden group hover:border-white/20 transition-all">
-      <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/20 rounded-full blur-3xl group-hover:bg-rose-500/30 transition-all pointer-events-none" />
+    <div className="glass-card rounded-2xl p-6 md:p-8 flex flex-col relative overflow-visible group hover:border-white/20 transition-all">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl transition-all pointer-events-none" />
 
       <div className="flex items-center gap-4 mb-6 relative z-10">
         <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-rose-500 shadow-inner">
@@ -64,80 +75,68 @@ export default function ScheduleCard() {
         </div>
       </div>
 
-      <div className="space-y-4 mb-8 relative z-10 flex-1">
+      <div className="space-y-4 mb-8 relative z-20 flex-1">
         {loading ? (
           <div className="flex items-center gap-3 text-white/50 h-[42px] px-4 glass rounded-lg">
             <Loader2 size={16} className="animate-spin" />
             <span className="text-sm">Loading batches...</span>
           </div>
         ) : (
-          <>
-            {/* <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-white/70">Filter by Type</label>
-              <div className="flex flex-wrap gap-2">
-                {types.map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setSelectedType(t)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${selectedType === t ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : "bg-white/5 text-white/60 border border-white/10 hover:bg-white/10"
-                      }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div> */}
-
-            <div className="flex flex-col gap-2 relative group/input pt-2">
-              <label className="text-sm font-medium text-white/70">Select your batch</label>
-              <div className="flex items-center gap-2 glass px-4 py-2.5 rounded-lg border-white/10 focus-within:border-rose-500/50 focus-within:ring-2 focus-within:ring-rose-500/20 transition-all">
-                <input
-                  type="text"
-                  placeholder="Search batch (e.g. 1A11)"
-                  className="bg-transparent border-none outline-none text-white w-full placeholder:text-white/30 text-sm"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setIsDropdownOpen(true);
-                  }}
-                  onFocus={() => setIsDropdownOpen(Boolean(search.trim()))}
-                />
-                <ChevronDown size={16} className="text-white/40" />
-              </div>
-
-              {search && isDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 max-h-48 overflow-y-auto glass border-white/10 rounded-lg p-1 z-20 shadow-xl backdrop-blur-2xl">
-                  {filteredBatches.length > 0 ? (
-                    filteredBatches.map((batch) => (
-                      <button
-                        key={batch}
-                        onClick={() => {
-                          setSelectedBatch(batch);
-                          setSearch(batch);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all flex items-center justify-between
-                          ${selectedBatch === batch ? 'bg-rose-500/20 text-rose-300' : 'text-white/70 hover:bg-white/10 hover:text-white'}
-                        `}
-                      >
-                        <span>{batch}</span>
-                        {selectedBatch === batch && <Check size={14} />}
-                      </button>
-                    ))
-                  ) : (
-                    <div className="p-3 text-sm text-white/40 text-center">No batches found</div>
-                  )}
-                </div>
-              )}
+          <div className="flex flex-col gap-2 relative group/input pt-2" ref={dropdownRef}>
+            <label className="text-sm font-medium text-white/70">Select your batch</label>
+            <div 
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all cursor-text ${isDropdownOpen ? 'border-rose-500/50 ring-2 ring-rose-500/20 bg-black/40' : 'glass border-white/10'}`}
+              onClick={() => setIsDropdownOpen(true)}
+            >
+              <input
+                type="text"
+                placeholder="Search batch (e.g. 1A11)"
+                className="bg-transparent border-none outline-none text-white w-full placeholder:text-white/30 text-sm"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setIsDropdownOpen(true);
+                }}
+                onFocus={() => setIsDropdownOpen(true)}
+              />
+              <ChevronDown size={16} className={`text-white/40 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </div>
-          </>
+
+            {isDropdownOpen && (
+              <div className="absolute top-[110%] left-0 right-0 max-h-56 overflow-y-auto bg-black/80 border border-white/20 rounded-xl p-2 z-[100] shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl">
+                {filteredBatches.length > 0 ? (
+                  filteredBatches.map((batch) => (
+                    <button
+                      key={batch}
+                      onClick={() => {
+                        setSelectedBatch(batch);
+                        setSearch(batch);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-all flex items-center justify-between mb-0.5
+                        ${selectedBatch === batch ? 'bg-rose-500/20 text-rose-300' : 'text-white/70 hover:bg-white/10 hover:text-white'}
+                      `}
+                    >
+                      <span className="font-medium">{batch}</span>
+                      {selectedBatch === batch && <Check size={16} />}
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-4 text-sm text-white/40 text-center flex flex-col items-center gap-2">
+                    <span className="opacity-50 text-xl block">📭</span>
+                    No batches match '{search}'
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
       <button
         onClick={handleSelect}
         disabled={!selectedBatch}
-        className="w-full relative z-10 py-3 px-4 bg-white text-black font-semibold rounded-lg hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98]"
+        className="w-full relative z-10 py-3 px-4 bg-white text-black font-bold rounded-xl hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.25)] active:scale-[0.98]"
       >
         View Schedule
       </button>
