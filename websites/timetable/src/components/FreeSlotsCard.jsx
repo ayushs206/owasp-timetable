@@ -90,7 +90,7 @@ export default function FreeSlotsCard() {
             <div className="flex items-center gap-2 glass px-4 py-2.5 rounded-lg border-white/10 focus-within:border-fuchsia-500/50 focus-within:ring-2 focus-within:ring-fuchsia-500/20 transition-all">
               <input
                 type="text"
-                placeholder="Search batch (e.g. CO15)"
+                placeholder="Search batch (e.g. 1A11)"
                 className="bg-transparent border-none outline-none text-white w-full placeholder:text-white/30 text-sm"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
