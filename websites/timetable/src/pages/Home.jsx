@@ -19,7 +19,7 @@ export function HomeSite() {
             Timetable & Free Slots
           </h1>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            Manage your academic schedule effortlessly. View batches, check free slots, and organize your week with our premium dashboard.
+            Ditch messy Excel sheets. Select your batch to view your timetable in a clean, interactive format, and instantly find common free slots with friends to plan your day smarter.
           </p>
         </div>
 
