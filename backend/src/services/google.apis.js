@@ -1,5 +1,4 @@
 import { google } from "googleapis";
-import axios from "axios";
 
 export const generateGoogleAuthURL = async (batch, operation) => {
 
@@ -21,6 +20,23 @@ export const generateGoogleAuthURL = async (batch, operation) => {
 };
 
 const dayMap = { "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5, "Saturday": 6, "Sunday": 0 };
+
+const pad2 = (num) => String(num).padStart(2, "0");
+
+const parseDateOnlyToUTC = (dateStr) => {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+};
+
+const formatAsLocalDateTime = (dateObj) => {
+    const year = dateObj.getUTCFullYear();
+    const month = pad2(dateObj.getUTCMonth() + 1);
+    const day = pad2(dateObj.getUTCDate());
+    const hours = pad2(dateObj.getUTCHours());
+    const minutes = pad2(dateObj.getUTCMinutes());
+    const seconds = pad2(dateObj.getUTCSeconds());
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+};
 
 const parseTime = (timeStr) => {
     const [time, modifier] = timeStr.split(' ');
@@ -82,7 +98,8 @@ const addScheduleToCalendar = async (calendar, calendarId, batch) => {
     if (!batchTimetable) throw new Error("Batch not found : " + batch);
 
     const startDateStr = process.env.SEMESTER_START_DATE || "2025-07-21";
-    const startDate = new Date(startDateStr);
+    const startDate = parseDateOnlyToUTC(startDateStr);
+    const calendarTimeZone = process.env.CALENDAR_TIME_ZONE || "Asia/Kolkata";
 
     const eventsToCreate = [];
 
@@ -98,17 +115,23 @@ const addScheduleToCalendar = async (calendar, calendarId, batch) => {
         const dayIndex = dayMap[day];
 
         const classDate = new Date(startDate);
-        const startDayIndex = classDate.getDay();
+        const startDayIndex = classDate.getUTCDay();
         const daysToAdd = (dayIndex - startDayIndex + 7) % 7;
 
-        classDate.setDate(classDate.getDate() + daysToAdd);
+        classDate.setUTCDate(classDate.getUTCDate() + daysToAdd);
 
         for (const [timeRange, classDetails] of Object.entries(classes)) {
             // classDetails -> [CourseCode, Location, SubjectName, Type]
             const { hours, minutes } = parseTime(timeRange);
 
-            const eventStart = new Date(classDate);
-            eventStart.setHours(hours, minutes, 0, 0);
+            const eventStart = new Date(Date.UTC(
+                classDate.getUTCFullYear(),
+                classDate.getUTCMonth(),
+                classDate.getUTCDate(),
+                hours,
+                minutes,
+                0
+            ));
 
             const eventEnd = new Date(eventStart.getTime() + 50 * 60000); // assume 50 min class
 
@@ -117,8 +140,8 @@ const addScheduleToCalendar = async (calendar, calendarId, batch) => {
                 location: classDetails[1],
                 description: `Course Code: ${classDetails[0]}\nType: ${classDetails[3]}\nBatch: ${batch}`,
                 colorId: getGoogleColorId(classDetails[3]),
-                start: { dateTime: eventStart.toISOString(), timeZone: "Asia/Kolkata" },
-                end: { dateTime: eventEnd.toISOString(), timeZone: "Asia/Kolkata" },
+                start: { dateTime: formatAsLocalDateTime(eventStart), timeZone: calendarTimeZone },
+                end: { dateTime: formatAsLocalDateTime(eventEnd), timeZone: calendarTimeZone },
                 recurrence: [
                     'RRULE:FREQ=WEEKLY;COUNT=19'
                 ],
