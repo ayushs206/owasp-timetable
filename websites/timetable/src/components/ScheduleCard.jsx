@@ -7,6 +7,7 @@ export default function ScheduleCard() {
   const [loading, setLoading] = useState(true);
   const [selectedBatch, setSelectedBatch] = useState("");
   const [search, setSearch] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedType, setSelectedType] = useState("All");
   const navigate = useNavigate();
 
@@ -59,7 +60,7 @@ export default function ScheduleCard() {
         </div>
         <div>
           <h2 className="text-2xl font-bold text-white tracking-tight">Schedule</h2>
-          <p className="text-sm text-white/50">Current Semester</p>
+          <p className="text-sm text-white/50">2025-26 Even Sem</p>
         </div>
       </div>
 
@@ -95,12 +96,16 @@ export default function ScheduleCard() {
                   placeholder="Search batch (e.g. CO15)"
                   className="bg-transparent border-none outline-none text-white w-full placeholder:text-white/30 text-sm"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setIsDropdownOpen(true);
+                  }}
+                  onFocus={() => setIsDropdownOpen(Boolean(search.trim()))}
                 />
                 <ChevronDown size={16} className="text-white/40" />
               </div>
 
-              {search && (
+              {search && isDropdownOpen && (
                 <div className="absolute top-full left-0 right-0 mt-2 max-h-48 overflow-y-auto glass border-white/10 rounded-lg p-1 z-20 shadow-xl backdrop-blur-2xl">
                   {filteredBatches.length > 0 ? (
                     filteredBatches.map((batch) => (
@@ -109,6 +114,7 @@ export default function ScheduleCard() {
                         onClick={() => {
                           setSelectedBatch(batch);
                           setSearch(batch);
+                          setIsDropdownOpen(false);
                         }}
                         className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all flex items-center justify-between
                           ${selectedBatch === batch ? 'bg-rose-500/20 text-rose-300' : 'text-white/70 hover:bg-white/10 hover:text-white'}
