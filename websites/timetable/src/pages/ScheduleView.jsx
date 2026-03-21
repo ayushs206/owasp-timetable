@@ -45,7 +45,7 @@ export default function ScheduleView() {
   const [result, setResult] = useState(null); // original
   const [editedResult, setEditedResult] = useState(null); // local edits
   const [error, setError] = useState(null);
-  
+
   const [expandedDay, setExpandedDay] = useState(DAYS[0]);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -92,16 +92,17 @@ export default function ScheduleView() {
 
       // Small delay to ensure React commits and CSS paints the hidden table properly
       await new Promise(r => setTimeout(r, 100));
-      
-      const dataUrl = await toPng(element, { 
-        backgroundColor: "#09090b", 
+
+      const dataUrl = await toPng(element, {
+        backgroundColor: "#09090b",
         pixelRatio: 2,
         skipFonts: false,
         style: {
           transform: 'none',
+          opacity: '1'
         }
       });
-      
+
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = `Timetable_${batch}.png`;
@@ -134,14 +135,14 @@ export default function ScheduleView() {
     const { day, time } = currentEditSlot;
     const newSchedule = { ...editedResult };
     if (!newSchedule[day]) newSchedule[day] = {};
-    
+
     newSchedule[day][time] = [
       modalFormData.code.trim(),
       modalFormData.location.trim(),
       modalFormData.name.trim() || "Subject",
       modalFormData.type
     ];
-    
+
     setEditedResult(newSchedule);
     setIsModalOpen(false);
   };
@@ -208,17 +209,20 @@ export default function ScheduleView() {
 
   // Render unified table component (used for Desktop UI AND Hidden Mobile capture container)
   const renderDesktopTable = (refProps, isCaptureOnly = false) => (
-    <div 
-      {...refProps} 
-      className={`w-full ${!isCaptureOnly ? "overflow-x-auto custom-scrollbar bg-black/40 rounded-2xl p-4 shadow-2xl glass-card border-none" : "bg-[#09090b] text-white p-4 w-[1100px] block"}`}
+    <div
+      {...refProps}
+      className={`w-full ${!isCaptureOnly ? "overflow-x-auto custom-scrollbar bg-black/40 rounded-2xl p-4 shadow-2xl glass-card border-none" : "bg-[#09090b] text-white p-6 pb-4 w-[1150px] block"}`}
     >
-      {!isCaptureOnly && (
-        <div className="mb-4 flex items-center justify-between pb-4 border-b border-white/10">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Calendar className="text-rose-500" /> Schedule: {batch}
+      <div className={`flex items-end justify-between pb-4 ${isCaptureOnly ? 'mb-6 border-b-2 border-white/10' : 'mb-4 border-b border-white/10'}`}>
+        <div>
+          {isCaptureOnly && <div className="text-rose-500 font-semibold text-xs tracking-widest uppercase mb-1.5 flex items-center gap-2"><Calendar size={14} /> GENERATED TIMETABLE</div>}
+          <h2 className={`${isCaptureOnly ? 'text-3xl' : 'text-xl'} font-bold text-white flex items-center gap-2 tracking-tight`}>
+            {!isCaptureOnly && <Calendar className="text-rose-500" />}
+            {isCaptureOnly ? `Schedule for ${batch}` : `Schedule: ${batch}`}
           </h2>
         </div>
-      )}
+      </div>
+
       <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
         <thead>
           <tr>
@@ -226,8 +230,8 @@ export default function ScheduleView() {
               Day
             </th>
             {TIMES.map((time) => {
-                const [timeVal, period] = time.split(" ");
-                return (
+              const [timeVal, period] = time.split(" ");
+              return (
                 <th key={time} className="p-2 border-b border-r border-white/10 bg-white/5 font-medium text-center w-[90px]">
                   <div className="flex flex-col items-center justify-center gap-0.5">
                     <span className="text-sm text-white/90">{timeVal}</span>
@@ -282,7 +286,7 @@ export default function ScheduleView() {
             <ArrowLeft size={16} />
             <span>Back to Dashboard</span>
           </Link>
-          
+
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-white flex items-center gap-3 mb-2">
@@ -293,7 +297,7 @@ export default function ScheduleView() {
               </h1>
               <p className="text-white/50">Edit your classes manually, then download your personalized timetable.</p>
             </div>
-            
+
             {result && (
               <button
                 onClick={handleDownload}
@@ -327,16 +331,15 @@ export default function ScheduleView() {
               {/* Mobile View: Accordion */}
               <div className="md:hidden flex flex-col gap-4">
                 {DAYS.map((day) => {
-                  const daySlots = Object.entries(editedResult[day] || {}).sort((a,b) => TIMES.indexOf(a[0]) - TIMES.indexOf(b[0]));
+                  const daySlots = Object.entries(editedResult[day] || {}).sort((a, b) => TIMES.indexOf(a[0]) - TIMES.indexOf(b[0]));
                   const isExpanded = expandedDay === day;
 
                   return (
                     <div key={day} className="flex flex-col rounded-xl overflow-hidden glass border-white/10">
                       <button
                         onClick={() => setExpandedDay(isExpanded ? null : day)}
-                        className={`flex items-center justify-between p-4 transition-colors ${
-                          isExpanded ? "bg-white/10" : "hover:bg-white/5"
-                        }`}
+                        className={`flex items-center justify-between p-4 transition-colors ${isExpanded ? "bg-white/10" : "hover:bg-white/5"
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           <span className="font-semibold text-white/90">{day}</span>
@@ -361,14 +364,14 @@ export default function ScheduleView() {
                               </div>
                             </div>
                           ))}
-                          
+
                           {/* Unfilled slots adding interface */}
                           {daySlots.length === 0 && (
                             <div className="text-center p-4 text-white/40 text-sm italic">
                               No classes on this day.
                             </div>
                           )}
-                          
+
                           <div className="pt-2 mt-2 border-t border-white/10">
                             <button
                               onClick={(e) => { e.stopPropagation(); openSlotModal(day, TIMES[0], null); }}
@@ -385,7 +388,7 @@ export default function ScheduleView() {
               </div>
 
               {/* Hidden Desktop Table for Reliable PNG Captures */}
-              <div className="absolute top-[-9999px] left-[-9999px]">
+              <div className="fixed top-0 left-[-3000px] opacity-0 pointer-events-none">
                 {renderDesktopTable({ ref: hiddenTableRef }, true)}
               </div>
             </>
@@ -403,13 +406,13 @@ export default function ScheduleView() {
       {isModalOpen && currentEditSlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="glass-card bg-[#09090b]/90 rounded-2xl p-6 w-full max-w-md border border-white/10 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            <button 
+            <button
               onClick={() => setIsModalOpen(false)}
               className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors"
             >
               <X size={20} />
             </button>
-            
+
             <h3 className="text-xl font-bold text-white mb-1">Edit Timetable Slot</h3>
             <p className="text-sm text-white/50 mb-6">{currentEditSlot.day} at {currentEditSlot.time}</p>
 
@@ -417,7 +420,7 @@ export default function ScheduleView() {
               <div className="md:hidden">
                 {/* On mobile, allow changing the time itself when 'adding a class' from empty day */}
                 <label className="block text-xs font-medium text-white/70 mb-1">Time Slot</label>
-                <select 
+                <select
                   className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-rose-500/50"
                   value={currentEditSlot.time}
                   onChange={(e) => setCurrentEditSlot({ ...currentEditSlot, time: e.target.value })}
@@ -428,7 +431,7 @@ export default function ScheduleView() {
 
               <div>
                 <label className="block text-xs font-medium text-white/70 mb-1">Type</label>
-                <select 
+                <select
                   className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-rose-500/50"
                   value={modalFormData.type}
                   onChange={(e) => setModalFormData({ ...modalFormData, type: e.target.value })}
@@ -439,11 +442,11 @@ export default function ScheduleView() {
                   <option value="Event">Event / Other</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-xs font-medium text-white/70 mb-1">Lecture Code (Optional)</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="e.g. UPH013P"
                   className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-rose-500/50"
                   value={modalFormData.code}
@@ -453,8 +456,8 @@ export default function ScheduleView() {
 
               <div>
                 <label className="block text-xs font-medium text-white/70 mb-1">Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   autoFocus
                   placeholder="e.g. PHYSICS"
                   className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-rose-500/50"
@@ -465,8 +468,8 @@ export default function ScheduleView() {
 
               <div>
                 <label className="block text-xs font-medium text-white/70 mb-1">Location</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="e.g. G312 LAB1"
                   className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-rose-500/50"
                   value={modalFormData.location}
@@ -476,21 +479,21 @@ export default function ScheduleView() {
             </div>
 
             <div className="flex items-center justify-between gap-4 mt-8">
-               <button 
-                  onClick={deleteSlot}
-                  className="flex items-center gap-2 px-4 py-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors font-medium text-sm"
-                >
-                  <Trash2 size={16} /> Remove
-                </button>
-              
+              <button
+                onClick={deleteSlot}
+                className="flex items-center gap-2 px-4 py-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors font-medium text-sm"
+              >
+                <Trash2 size={16} /> Remove
+              </button>
+
               <div className="flex gap-2">
-                <button 
+                <button
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-white/70 hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={saveSlot}
                   disabled={!modalFormData.name}
                   className="px-4 py-2 bg-white text-black font-semibold rounded-lg hover:bg-white/90 transition-all shadow-lg active:scale-95 disabled:opacity-50 text-sm"
