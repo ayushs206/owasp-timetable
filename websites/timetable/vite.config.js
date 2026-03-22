@@ -8,6 +8,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "")
+  const allowedHosts = (env.VITE_ALLOWED_HOSTS || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
 
   return {
     plugins: [react()],
@@ -17,7 +21,13 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      host: true,
       port: 3000,
+      allowedHosts: [
+        ".ngrok.io",
+        ".ngrok-free.app",
+        ...allowedHosts,
+      ],
       proxy: {
         "/api": {
           target: env.VITE_API_URL || "http://localhost:8000",
