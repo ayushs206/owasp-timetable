@@ -21,6 +21,66 @@ const TIMES = [
   "04:20 PM",
 ];
 
+const getScheduleStorageKey = (batchName) => `timetable:schedule:${batchName}`;
+
+const isValidScheduleShape = (value) => value && typeof value === "object" && !Array.isArray(value);
+
+const normalizeBatchSchedules = (payload, batches) => {
+  const raw = payload?.data ?? payload;
+  if (Array.isArray(raw)) {
+    return raw;
+  }
+
+  if (raw && typeof raw === "object") {
+    return batches.map((batch) => raw[batch] || raw[batch?.toUpperCase?.()] || null);
+  }
+
+  return [];
+};
+
+const getStoredScheduleForBatch = (batchName) => {
+  try {
+    const stored = localStorage.getItem(getScheduleStorageKey(batchName));
+    if (!stored) return null;
+
+    const parsed = JSON.parse(stored);
+    return isValidScheduleShape(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const hasClassInSlot = (schedule, day, time) => {
+  const dayData = schedule?.[day];
+  if (!dayData || typeof dayData !== "object") return false;
+
+  const slotValue = dayData[time];
+  if (slotValue === undefined || slotValue === null) return false;
+
+  if (Array.isArray(slotValue)) {
+    return slotValue.some((item) => String(item ?? "").trim() !== "");
+  }
+
+  if (typeof slotValue === "string") {
+    return slotValue.trim() !== "";
+  }
+
+  if (typeof slotValue === "object") {
+    return Object.keys(slotValue).length > 0;
+  }
+
+  return Boolean(slotValue);
+};
+
+const calculateCommonFreeSlots = (schedules) => {
+  const validSchedules = schedules.filter((schedule) => isValidScheduleShape(schedule));
+
+  return DAYS.reduce((acc, day) => {
+    acc[day] = TIMES.filter((time) => validSchedules.every((schedule) => !hasClassInSlot(schedule, day, time)));
+    return acc;
+  }, {});
+};
+
 export default function FreeSlotsView() {
   const location = useLocation();
   const rawBatches = location.state?.batches;
@@ -44,7 +104,17 @@ export default function FreeSlotsView() {
           });
           if (res.ok) {
             const data = await res.json();
-            setResult(data.data);
+            const backendSchedules = normalizeBatchSchedules(data, batches);
+
+            const mergedSchedules = batches.map((batchName, index) => {
+              const localSchedule = getStoredScheduleForBatch(batchName);
+              if (localSchedule) return localSchedule;
+
+              const backendSchedule = backendSchedules[index];
+              return isValidScheduleShape(backendSchedule) ? backendSchedule : {};
+            });
+
+            setResult(calculateCommonFreeSlots(mergedSchedules));
           } else {
             setError("Failed to fetch free slots data.");
           }
