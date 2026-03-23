@@ -22,6 +22,12 @@ const TIMES = [
   "04:20 PM",
 ];
 
+const getScheduleStorageKey = (batchName) => `timetable:schedule:${batchName}`;
+
+const cloneSchedule = (schedule) => JSON.parse(JSON.stringify(schedule || {}));
+
+const isValidScheduleShape = (value) => value && typeof value === "object" && !Array.isArray(value);
+
 const getTypeColors = (type) => {
   const t = (type || "").toLowerCase();
   if (t.includes("lecture")) return "bg-blue-500/10 border-blue-500/30 text-blue-300";
@@ -54,6 +60,8 @@ export default function ScheduleView() {
 
   const [expandedDay, setExpandedDay] = useState(DAYS[0]);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [hasSavedLocalData, setHasSavedLocalData] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("");
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,8 +90,29 @@ export default function ScheduleView() {
           const res = await fetch(`/api/v1/timetable/schedule/${encodeURIComponent(batch)}`);
           if (res.ok) {
             const data = await res.json();
-            setResult(data.data);
-            setEditedResult(JSON.parse(JSON.stringify(data.data))); // copy
+            const backendSchedule = data.data;
+            setResult(backendSchedule);
+
+            const storageKey = getScheduleStorageKey(batch);
+            const savedData = localStorage.getItem(storageKey);
+            if (savedData) {
+              try {
+                const parsed = JSON.parse(savedData);
+                if (isValidScheduleShape(parsed)) {
+                  setEditedResult(parsed);
+                  setHasSavedLocalData(true);
+                } else {
+                  setEditedResult(cloneSchedule(backendSchedule));
+                  setHasSavedLocalData(false);
+                }
+              } catch {
+                setEditedResult(cloneSchedule(backendSchedule));
+                setHasSavedLocalData(false);
+              }
+            } else {
+              setEditedResult(cloneSchedule(backendSchedule));
+              setHasSavedLocalData(false);
+            }
           } else {
             setError("Failed to fetch schedule data.");
           }
@@ -98,6 +127,35 @@ export default function ScheduleView() {
     };
     fetchData();
   }, [batch]);
+
+  useEffect(() => {
+    if (!saveStatus) return;
+    const timeoutId = setTimeout(() => setSaveStatus(""), 2400);
+    return () => clearTimeout(timeoutId);
+  }, [saveStatus]);
+
+  const handleSaveLocal = () => {
+    if (!batch || !editedResult) return;
+    try {
+      const storageKey = getScheduleStorageKey(batch);
+      localStorage.setItem(storageKey, JSON.stringify(editedResult));
+      setHasSavedLocalData(true);
+      setSaveStatus("Saved locally for this batch.");
+    } catch {
+      setSaveStatus("Could not save locally on this device.");
+    }
+  };
+
+  const handleResetLocal = () => {
+    if (!batch) return;
+    const storageKey = getScheduleStorageKey(batch);
+    localStorage.removeItem(storageKey);
+    setHasSavedLocalData(false);
+    setSaveStatus("Local saved data removed. Using backend default.");
+    if (result) {
+      setEditedResult(cloneSchedule(result));
+    }
+  };
 
   const handleDownload = async () => {
     setIsDownloading(true);
@@ -391,17 +449,36 @@ export default function ScheduleView() {
                 Schedule for {batch}
               </h1>
               <p className="text-white/50">Edit your classes manually, then download your personalized timetable.</p>
+              {saveStatus && (
+                <p className="text-xs text-white/70 mt-2">{saveStatus}</p>
+              )}
             </div>
 
             {result && (
-              <button
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white text-black font-semibold rounded-lg hover:bg-white/90 transition-all shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed whitespace-nowrap w-fit self-start md:self-end"
-              >
-                {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                Download PNG
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto self-start md:self-end">
+                <button
+                  onClick={handleSaveLocal}
+                  disabled={!editedResult}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/10 text-white font-semibold rounded-lg border border-white/15 hover:bg-white/15 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  Save Schedule
+                </button>
+                <button
+                  onClick={handleResetLocal}
+                  disabled={!hasSavedLocalData}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-500/10 text-rose-300 font-semibold rounded-lg border border-rose-400/20 hover:bg-rose-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  Reset Schedule
+                </button>
+                <button
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-black font-semibold rounded-lg hover:bg-white/90 transition-all shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                  Download PNG
+                </button>
+              </div>
             )}
           </div>
         </div>
