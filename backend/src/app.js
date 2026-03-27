@@ -13,6 +13,7 @@ const restrictedCors = cors({
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
+            console.log(origin, allowedOrigins)
             callback(new Error('Not allowed by CORS'));
         }
     },
