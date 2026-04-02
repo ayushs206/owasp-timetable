@@ -69,6 +69,7 @@ export default function ScheduleView() {
   const [modalFormData, setModalFormData] = useState({ code: "", location: "", name: "", type: "Lecture" });
 
   const [expandedCell, setExpandedCell] = useState(null);
+  const [dragOverCell, setDragOverCell] = useState(null);
 
   const desktopTableRef = useRef(null);
   const hiddenTableRef = useRef(null); // For mobile capturing
@@ -234,6 +235,42 @@ export default function ScheduleView() {
     setIsModalOpen(false);
   };
 
+  const handleDrop = (e, targetDay, targetTime) => {
+    e.preventDefault();
+    setDragOverCell(null);
+    try {
+      const dataStr = e.dataTransfer.getData("application/json");
+      if (!dataStr) return;
+      
+      const { sourceDay, sourceTime } = JSON.parse(dataStr);
+      if (sourceDay === targetDay && sourceTime === targetTime) return;
+
+      const newSchedule = { ...editedResult };
+      
+      const sourceSlot = newSchedule[sourceDay]?.[sourceTime];
+      const targetSlot = newSchedule[targetDay]?.[targetTime];
+
+      if (!newSchedule[targetDay]) newSchedule[targetDay] = {};
+      if (!newSchedule[sourceDay]) newSchedule[sourceDay] = {};
+
+      if (sourceSlot) {
+        newSchedule[targetDay][targetTime] = sourceSlot;
+      } else {
+        delete newSchedule[targetDay][targetTime];
+      }
+
+      if (targetSlot) {
+        newSchedule[sourceDay][sourceTime] = targetSlot;
+      } else {
+        delete newSchedule[sourceDay][sourceTime];
+      }
+
+      setEditedResult(newSchedule);
+    } catch (err) {
+      console.error("Failed to parse drag data", err);
+    }
+  };
+
   // Shared generic cell render function
   const renderCellContent = (subjectList, isDesktop = true, isExpanded = false, onEdit = null) => {
     if (!subjectList) return null;
@@ -373,6 +410,22 @@ export default function ScheduleView() {
                 return (
                   <td
                     key={time}
+                    draggable={!isCaptureOnly && !!subjectList}
+                    onDragStart={(e) => {
+                      if (!isCaptureOnly && !!subjectList) {
+                        e.dataTransfer.setData("application/json", JSON.stringify({ sourceDay: day, sourceTime: time }));
+                      }
+                    }}
+                    onDragOver={(e) => {
+                      if (!isCaptureOnly) {
+                        e.preventDefault();
+                        setDragOverCell(`${day}-${time}`);
+                      }
+                    }}
+                    onDragLeave={() => setDragOverCell(null)}
+                    onDrop={(e) => {
+                      if (!isCaptureOnly) handleDrop(e, day, time);
+                    }}
                     onClick={(e) => {
                       if (isCaptureOnly) return;
                       e.stopPropagation();
@@ -388,7 +441,8 @@ export default function ScheduleView() {
                       }
                     }}
                     className={`relative p-1.5 border-b border-r border-white/5 text-center transition-all h-[100px] w-[90px] align-top
-                      ${!isCaptureOnly ? "cursor-pointer hover:bg-white/5" : ""} 
+                      ${!isCaptureOnly ? "cursor-pointer hover:bg-white/5" : ""}
+                      ${dragOverCell === `${day}-${time}` ? "bg-white/10 shadow-[inset_0_0_0_2px_rgba(244,63,94,0.5)]" : ""}
                     `}
                   >
                     {subjectList ? (
